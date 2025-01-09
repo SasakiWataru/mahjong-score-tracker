@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>麻雀点数計算機</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+    nav {
+      background-color: #6200ea;
+      padding: 10px 20px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav div {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #6200ea;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    select, button {
+      font-size: 16px;
+      padding: 8px;
+      margin: 10px 0;
+      width: 100%;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .result p {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div>麻雀点数計算機</div>
+    <div>
+      <a href="index.html">ホーム</a>
+      <a href="record_scores.html">点数記録</a>
+      <a href="history.html">履歴</a>
+      <a href="user_registration.html">ユーザー登録</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>点数計算機</h1>
+    <label for="role">親か子を選択してください:</label>
+    <select id="role">
+      <option value="parent">親</option>
+      <option value="child">子</option>
+    </select>
+
+    <label for="han">翻数:</label>
+    <select id="han" onchange="updateFuState()">
+      <option value="1">1翻</option>
+      <option value="2">2翻</option>
+      <option value="3">3翻</option>
+      <option value="4">4翻</option>
+      <option value="5">満貫 (5翻)</option>
+      <option value="6">跳満 (6～7翻)</option>
+      <option value="8">倍満 (8～10翻)</option>
+      <option value="11">三倍満 (11～12翻)</option>
+      <option value="13">役満 (13翻以上)</option>
+    </select>
+
+    <label for="fu">符数:</label>
+    <select id="fu">
+      <option value="20">20符</option>
+      <option value="25">25符</option>
+      <option value="30">30符</option>
+      <option value="40">40符</option>
+      <option value="50">50符</option>
+      <option value="60">60符</option>
+      <option value="70">70符</option>
+      <option value="80">80符</option>
+      <option value="90">90符</option>
+      <option value="100">100符</option>
+      <option value="110">110符</option>
+    </select>
+
+    <button onclick="calculateScore()">計算する</button>
+
+    <div class="result" id="result"></div>
+  </div>
+  
+  <script>
+    const scoreTable = {
+      "20": { "1": "-----", "2": "700", "3": "1300", "4": "2600" },
+      "25": { "1": "-----", "2": "-----", "3": "3200", "4": "3200" },
+      "30": { "1": "1000", "2": "2000", "3": "3900", "4": "7700" },
+      "40": { "1": "1300", "2": "2600", "3": "5200", "4": "8000" },
+      "50": { "1": "1600", "2": "3200", "3": "6400", "4": "8000" },
+      "60": { "1": "2000", "2": "3900", "3": "7700", "4": "8000" },
+      "70": { "1": "2300", "2": "4500", "3": "8000", "4": "8000" },
+      "80": { "1": "2600", "2": "5200", "3": "8000", "4": "8000" },
+      "90": { "1": "2900", "2": "5800", "3": "8000", "4": "8000" },
+      "100": { "1": "3200", "2": "6400", "3": "8000", "4": "8000" },
+      "110": { "1": "3600", "2": "7100", "3": "8000", "4": "8000" },
+      "満貫": "8000",
+      "跳満": "12000",
+      "倍満": "16000",
+      "三倍満": "24000",
+      "役満": "32000"
+    };
+
+    function roundDownToNearestHundred(value) {
+      return Math.floor(value / 100) * 100; // 100の位以下を切り捨て
+    }
+
+    function roundUpToNearestHundred(value) {
+      return Math.ceil(value / 100) * 100; // 100の位以下を切り上げ
+    }
+
+    function updateFuState() {
+      const han = parseInt(document.getElementById("han").value, 10);
+      const fuSelect = document.getElementById("fu");
+
+      if (han >= 5) {
+        fuSelect.disabled = true;
+      } else {
+        fuSelect.disabled = false;
+      }
+    }
+
+    function calculateScore() {
+        const role = document.getElementById("role").value;
+        const han = parseInt(document.getElementById("han").value, 10);
+        const fu = document.getElementById("fu").value;
+        const resultDiv = document.getElementById("result");
+      
+        let baseScore;
+        let ronScore;
+        let tsumoScore;
+      
+        // 例外条件に対する処理
+        if (fu === "20") {
+          if (han === 2) {
+            if (role === "parent") {
+              resultDiv.innerHTML = `<p>ロン：-----</p><p>ツモ：700オール</p>`;
+            } else {
+              resultDiv.innerHTML = `<p>ロン：-----</p><p>ツモ：400・700</p>`;
+            }
+            return;
+          } else if (han === 3) {
+            if (role === "parent") {
+              resultDiv.innerHTML = `<p>ロン：-----</p><p>ツモ：1300オール</p>`;
+            } else {
+              resultDiv.innerHTML = `<p>ロン：-----</p><p>ツモ：700・1300</p>`;
+            }
+            return;
+          } else if (han === 4) {
+            if (role === "parent") {
+              resultDiv.innerHTML = `<p>ロン：-----</p><p>ツモ：2600オール</p>`;
+            } else {
+              resultDiv.innerHTML = `<p>ロン：-----</p><p>ツモ：1300・2600</p>`;
+            }
+            return;
+          }
+        } else if (fu === "25" && han === 2) {
+          if (role === "parent") {
+            resultDiv.innerHTML = `<p>ロン：2400</p><p>ツモ：-----</p>`;
+          } else {
+            resultDiv.innerHTML = `<p>ロン：1600</p><p>ツモ：-----</p>`;
+          }
+          return;
+        } else if (fu === "110" && han === 1) {
+          if (role === "parent") {
+            resultDiv.innerHTML = `<p>ロン：5300</p><p>ツモ：-----</p>`;
+          } else {
+            resultDiv.innerHTML = `<p>ロン：3600</p><p>ツモ：-----</p>`;
+          }
+          return;
+        } else if (han >= 5) {
+          // 5翻以上の計算
+          let baseScore = 0;
+      
+          if (han === 5) {
+            baseScore = 8000; // 満貫
+          } else if (han >= 6 && han <= 7) {
+            baseScore = 12000; // 跳満
+          } else if (han >= 8 && han <= 10) {
+            baseScore = 16000; // 倍満
+          } else if (han >= 11 && han <= 12) {
+            baseScore = 24000; // 三倍満
+          } else if (han >= 13) {
+            baseScore = 32000; // 役満
+          }
+      
+          // ロン点数の計算
+          ronScore = baseScore;
+          if (role === "parent") {
+            ronScore = roundDownToNearestHundred(ronScore * 1.5); // 1.5倍して100の位を切り捨て
+            tsumoScore = roundUpToNearestHundred(ronScore / 3);
+          } else if (role === "child") {
+            tsumoScore = roundUpToNearestHundred(ronScore / 4);
+            parentTsumoScore = roundUpToNearestHundred(ronScore / 2); // 親のツモ点数
+          }
+      
+          if (role === "parent") {
+            resultDiv.innerHTML = `ロン: ${ronScore} <br>ツモ: ${tsumoScore}オール`;
+          } else if (role === "child") {
+            resultDiv.innerHTML = `ロン: ${ronScore} <br>ツモ: ${tsumoScore}・${parentTsumoScore}`;
+          }
+        } else {
+          // 4翻以下の計算
+          const baseScore = scoreTable[fu]?.[han];
+          if (!baseScore) {
+            resultDiv.textContent = "計算できません（無効な符・翻の組み合わせ）";
+            return;
+          }
+      
+          if (role === "parent") {
+            ronScore = parseInt(baseScore, 10);
+            ronScore = roundDownToNearestHundred(ronScore * 1.5); // 親のロン点数を1.5倍して100の位を切り捨て
+            tsumoScore = roundUpToNearestHundred(ronScore / 3);
+            resultDiv.innerHTML = `ロン: ${ronScore}点<br>ツモ: ${tsumoScore}オール`;
+          } else if (role === "child") {
+            ronScore = parseInt(baseScore, 10);
+            tsumoScore = roundUpToNearestHundred(ronScore / 4);
+            parentTsumoScore = roundUpToNearestHundred(ronScore / 2); // 親のツモ点数
+            resultDiv.innerHTML = `ロン: ${ronScore} <br>ツモ: ${tsumoScore}・${parentTsumoScore}`;
+          }
+        }
+      }
+      
+  </script>
+</body>
+</html>

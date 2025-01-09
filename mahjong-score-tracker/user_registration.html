@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー登録</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    nav {
+      background-color: #6200ea;
+      padding: 10px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    h1 {
+      color: #6200ea;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      width: 100%;
+      max-width: 400px;
+    }
+    button {
+      background-color: #6200ea;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #3700b3;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .delete-button {
+      background-color: #ff5252;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .delete-button:hover {
+      background-color: #ff1744;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div>麻雀点数記録アプリ</div>
+    <div>            
+      <a href="index.html">ホーム</a>
+      <a href="record_scores.html">点数記録</a>            
+      <a href="history.html">履歴</a>
+      <a href="score_check.html">点数確認</a>    
+    </div>
+  </nav>
+  <h1>ユーザー登録</h1>
+  <form id="registrationForm">
+    <label for="userName">ユーザー名:</label>
+    <input type="text" id="userName" placeholder="ユーザー名を入力してください" required>
+    <button type="button" onclick="registerUser()">登録</button>
+  </form>
+
+  <div class="user-list" id="userList">
+    <h2>登録されたユーザー</h2>
+    <ul id="userListItems">
+      <!-- ユーザーリストがここに表示されます -->
+    </ul>
+  </div>
+
+  <script>
+    const userList = document.getElementById('userListItems');
+
+    // ローカルストレージからユーザーリストをロード
+    function loadUsers() {
+      const users = JSON.parse(localStorage.getItem('users')) || [];
+      userList.innerHTML = users.map(user => `
+        <li>
+          ${user}
+          <button class="delete-button" onclick="deleteUser('${user}')">削除</button>
+        </li>
+      `).join('');
+    }
+
+    // 新しいユーザーを登録
+    function registerUser() {
+      const userName = document.getElementById('userName').value.trim();
+      if (!userName) {
+        alert('ユーザー名を入力してください');
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem('users')) || [];
+      if (users.includes(userName)) {
+        alert('このユーザー名は既に登録されています');
+        return;
+      }
+
+      users.push(userName);
+      localStorage.setItem('users', JSON.stringify(users));
+      document.getElementById('userName').value = '';
+      loadUsers();
+      alert(`ユーザー「${userName}」が登録されました`);
+    }
+
+    // ユーザーを削除
+    function deleteUser(userName) {
+      const users = JSON.parse(localStorage.getItem('users')) || [];
+      const updatedUsers = users.filter(user => user !== userName);
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
+      loadUsers();
+      alert(`ユーザー「${userName}」を削除しました`);
+    }
+
+    // ページ読み込み時にユーザーリストを表示
+    window.onload = loadUsers;
+  </script>
+</body>
+</html>

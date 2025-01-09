@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>履歴一覧</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    nav {
+      background-color: #6200ea;
+      padding: 10px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    h1 {
+      color: #6200ea;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #6200ea;
+      color: white;
+    }
+    button {
+      background-color: #ff5252;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #ff1744;
+    }
+    .back-button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #6200ea;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 16px;
+      text-align: center;
+    }
+    .back-button:hover {
+      background-color: #3700b3;
+    }
+    .filter {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .filter select {
+      padding: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div>麻雀点数記録アプリ</div>
+    <div>
+      <a href="index.html">ホーム</a>
+      <a href="record_scores.html">点数記録</a>
+      <a href="user_registration.html">ユーザー登録</a>
+      <a href="score_check.html">点数確認</a>
+    </div>
+  </nav>
+
+  <h1>履歴一覧</h1>
+  <a href="history.html" class="back-button">戻る</a> <!-- タイトルの下の戻るボタン -->
+
+  <div class="filter">
+    <label for="playerCount">プレイ人数:</label>
+    <select id="playerCount" onchange="loadHistory()">
+      <option value="all">すべて</option>
+      <option value="3">3人プレイ</option>
+      <option value="4">4人プレイ</option>
+    </select>
+  </div>
+
+  <table id="historyTable">
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>プレイヤー</th>
+        <th>点数</th>
+        <th>順位</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 履歴データを動的に生成 -->
+    </tbody>
+  </table>
+
+  <a href="history.html" class="back-button">戻る</a> <!-- フッターの戻るボタン -->
+
+  <script>
+    const historyTableBody = document.querySelector('#historyTable tbody');
+
+    // 履歴をローカルストレージからロードして表示
+    function loadHistory() {
+      const history = JSON.parse(localStorage.getItem('history')) || [];
+      const playerCountFilter = document.getElementById('playerCount').value;
+
+      const filteredHistory = history.filter(record => {
+        if (playerCountFilter === 'all') return true;
+        return record.scores.length === parseInt(playerCountFilter);
+      });
+
+      // 点数の高い順に並べる
+      filteredHistory.forEach(record => {
+        record.scores.sort((a, b) => b.score - a.score); // 点数で降順にソート
+      });
+
+      historyTableBody.innerHTML = filteredHistory.map((record, index) => `
+        <tr>
+          <td>${record.date}</td>
+          <td>
+            ${record.scores.map(score => `${score.player}`).join('<br>')}
+          </td>
+          <td>
+            ${record.scores.map(score => `${score.score}`).join('<br>')}
+          </td>
+          <td>
+            ${record.scores.map(score => `${score.rank}`).join('<br>')}
+          </td>
+          <td>
+            <button onclick="deleteHistory(${index})">削除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 履歴を削除
+    function deleteHistory(index) {
+      const history = JSON.parse(localStorage.getItem('history')) || [];
+      history.splice(index, 1);
+      localStorage.setItem('history', JSON.stringify(history));
+      loadHistory();
+      alert('履歴を削除しました');
+    }
+
+    // ページ読み込み時に履歴を表示
+    window.onload = loadHistory;
+  </script>
+</body>
+</html>

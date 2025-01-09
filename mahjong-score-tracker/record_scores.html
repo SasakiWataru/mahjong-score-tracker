@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>点数の記録</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    nav {
+      background-color: #6200ea;
+      padding: 10px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    h1 {
+      color: #6200ea;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    select, input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      width: 100%;
+      max-width: 400px;
+    }
+    button {
+      background-color: #6200ea;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #3700b3;
+    }
+    .player-score {
+      display: flex;
+      justify-content: space-between;
+      max-width: 400px;
+      align-items: center;
+    }
+    .player-score select, .player-score input {
+      width: 30%;
+    }
+    .player-score span {
+      width: 20%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div>麻雀点数記録アプリ</div>
+    <div>
+      <a href="index.html">ホーム</a>
+      <a href="user_registration.html">ユーザー登録</a>    
+      <a href="history.html">履歴</a>
+      <a href="score_check.html">点数確認</a>
+    </div>
+  </nav>
+  <h1>点数の記録</h1>
+  <form id="scoreForm">
+    <label for="gameDate">日付:</label>
+    <input type="date" id="gameDate" required>
+
+    <label for="playerCount">人数を選択:</label>
+    <select id="playerCount" required>
+      <option value="">選択してください</option>
+      <option value="3">3人</option>
+      <option value="4">4人</option>
+    </select>
+
+    <div id="scoreInputs">
+      <!-- プレイヤー情報を動的に生成 -->
+    </div>
+
+    <button type="button" onclick="calculateRemaining()">自動計算を実行</button>
+    <button type="button" onclick="submitScores()">点数を記録する</button>
+  </form>
+
+  <script>
+    const scoreInputs = document.getElementById('scoreInputs');
+    const playerCountSelect = document.getElementById('playerCount');
+
+    const users = JSON.parse(localStorage.getItem('users')) || ['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4'];
+
+    playerCountSelect.addEventListener('change', () => {
+      const playerCount = parseInt(playerCountSelect.value, 10);
+      scoreInputs.innerHTML = '';
+
+      if (playerCount) {
+        for (let i = 1; i <= playerCount; i++) {
+          scoreInputs.innerHTML += `
+            <div class="player-score">
+              <select id="player${i}" required>
+                <option value="">プレイヤー${i}を選択</option>
+                ${users.map(user => `<option value="${user}">${user}</option>`).join('')}
+              </select>
+              <input type="number" id="score${i}" placeholder="点数を入力">
+              <span id="rank${i}">順位: -</span>
+            </div>
+          `;
+        }
+      }
+    });
+
+    function calculateRemaining() {
+      const playerCount = parseInt(playerCountSelect.value, 10);
+      const totalScore = playerCount === 3 ? 105000 : 100000;
+
+      let sum = 0;
+      let remainingIndex = null;
+
+      for (let i = 1; i <= playerCount; i++) {
+        const scoreInput = document.getElementById(`score${i}`);
+        const score = parseInt(scoreInput.value, 10);
+
+        if (isNaN(score)) {
+          if (remainingIndex === null) {
+            remainingIndex = i;
+          } else {
+            alert('未入力が複数あります。自動計算は実行できません。');
+            return;
+          }
+        } else {
+          sum += score;
+        }
+      }
+
+      if (remainingIndex !== null) {
+        const remainingScore = totalScore - sum;
+        document.getElementById(`score${remainingIndex}`).value = remainingScore;
+        updateRanks(playerCount);
+      } else {
+        alert('計算可能な状態ではありません。');
+      }
+    }
+
+    function updateRanks(playerCount) {
+      const scores = [];
+      for (let i = 1; i <= playerCount; i++) {
+        const score = parseInt(document.getElementById(`score${i}`).value, 10);
+        scores.push({ id: i, score: isNaN(score) ? -Infinity : score });
+      }
+
+      scores.sort((a, b) => b.score - a.score);
+
+      scores.forEach((player, index) => {
+        document.getElementById(`rank${player.id}`).textContent = `順位: ${index + 1}`;
+      });
+    }
+
+    function submitScores() {
+      const date = document.getElementById('gameDate').value;
+      const playerCount = parseInt(playerCountSelect.value, 10);
+
+      if (!date || !playerCount) {
+        alert('日付と人数を入力してください');
+        return;
+      }
+
+      const scores = [];
+      const players = new Set();
+
+      for (let i = 1; i <= playerCount; i++) {
+        const player = document.getElementById(`player${i}`).value;
+        const score = parseInt(document.getElementById(`score${i}`).value, 10);
+
+        if (!player || isNaN(score)) {
+          alert(`プレイヤー${i}の情報が正しく入力されていません`);
+          return;
+        }
+
+        if (players.has(player)) {
+          alert(`プレイヤー "${player}" が重複しています。別の名前を選んでください。`);
+          return;
+        }
+
+        players.add(player);
+        scores.push({ player, score });
+      }
+
+      // 順位を計算
+      scores.sort((a, b) => b.score - a.score);  // 点数で降順にソート
+
+      // 順位情報を追加
+      scores.forEach((score, index) => {
+        score.rank = index + 1;
+      });
+
+      // 履歴をローカルストレージから取得して、日付重複チェック
+      const history = JSON.parse(localStorage.getItem('history')) || [];
+      let sameDateCount = 0;
+      history.forEach(record => {
+        if (record.date.startsWith(date)) {
+          sameDateCount++;
+        }
+      });
+
+      // 同じ日付がある場合、(1), (2), (3) を付加
+      const uniqueDate = sameDateCount > 0 ? `${date}(${sameDateCount + 1})` : date;
+
+      // 新しい履歴を追加
+      history.push({
+        date: uniqueDate,
+        gameTime: new Date().toISOString(),
+        scores
+      });
+
+      // 履歴をローカルストレージに保存
+      localStorage.setItem('history', JSON.stringify(history));
+
+      alert(`記録完了:\n日付: ${uniqueDate}\n${scores.map(s => `${s.player}: ${s.score} 順位: ${s.rank}`).join('\n')}`);
+
+      // 入力フィールドをリセット
+      document.getElementById('scoreForm').reset();
+      scoreInputs.innerHTML = '';  // プレイヤー選択欄をクリア
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "mahjong-score-tracker",
+  "version": "1.0.0",
+  "description": "麻雀点数記録アプリケーション。",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8080",
+    "build": "echo 'ビルドプロセスはありません（静的ファイル）'",
+    "test": "echo 'テストスクリプトがありません'"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>履歴の閲覧</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    nav {
+      background-color: #6200ea;
+      padding: 10px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    h1 {
+      color: #6200ea;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      max-width: 900px;
+      height: 500px;
+    }
+    .statistics {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .stats-card {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 10px;
+      width: 300px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .stats-card h3 {
+      margin-top: 0;
+      color: #6200ea;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div>麻雀点数記録アプリ</div>
+    <div>
+      <a href="index.html">ホーム</a>
+      <a href="record_scores.html">点数記録</a>
+      <a href="user_registration.html">ユーザー登録</a>
+      <a href="score_check.html">点数確認</a>
+    </div>
+  </nav>
+
+  <h1>履歴の閲覧</h1>
+  <button onclick="location.href='all_history.html'">すべての履歴の閲覧</button>
+
+  <form id="historyForm">
+    <label>ユーザーを選択:</label>
+    <div id="userCheckboxes">
+      <!-- チェックボックスが動的に生成される -->
+    </div>
+
+    <label for="startDate">開始日:</label>
+    <input type="date" id="startDate" required>
+
+    <label for="endDate">終了日:</label>
+    <input type="date" id="endDate" required>
+
+    <button type="button" onclick="viewHistory()">履歴を表示</button>
+  </form>
+
+  <canvas id="historyChart"></canvas>
+
+  <div class="statistics" id="statisticsContainer"></div>
+
+  <script>
+    const users = JSON.parse(localStorage.getItem('users')) || ['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4'];
+    const userCheckboxes = document.getElementById('userCheckboxes');
+    const historyChart = document.getElementById('historyChart').getContext('2d');
+    const statisticsContainer = document.getElementById('statisticsContainer');
+
+    // チェックボックスを動的生成
+    users.forEach(user => {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = user;
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(user));
+      userCheckboxes.appendChild(label);
+    });
+
+    // 選択されたユーザーを取得
+    function getSelectedUsers() {
+      return Array.from(userCheckboxes.querySelectorAll('input:checked')).map(checkbox => checkbox.value);
+    }
+
+    // 履歴データの取得
+    function fetchScores(selectedUsers, startDate, endDate) {
+      const allData = JSON.parse(localStorage.getItem('history')) || [];
+      return allData.filter(record => 
+        record.date >= startDate && 
+        record.date <= endDate &&
+        record.scores.some(score => selectedUsers.includes(score.player))
+      );
+    }
+
+    // データをユーザーごとにグループ化
+    function groupDataByUser(data, selectedUsers) {
+      const groupedData = selectedUsers.map(user => {
+        const userData = {
+          player: user,
+          dates: [],
+          scores: [],
+          ranks: [],
+        };
+
+        data.forEach(record => {
+          record.scores.forEach((score, index) => {
+            if (score.player === user) {
+              userData.dates.push(record.date);
+              userData.scores.push(score.score);
+              userData.ranks.push(score.rank); // 順位を保存
+            }
+          });
+        });
+
+        return userData;
+      });
+
+      return groupedData;
+    }
+
+    // 同じ日付の重複を避ける
+    function generateDateLabels(dates) {
+      const uniqueDates = [...new Set(dates)];
+      return uniqueDates;
+    }
+
+    // 平均点を取得
+    function getAverageScore(scores) {
+      const total = scores.reduce((acc, score) => acc + score, 0);
+      return total / scores.length;
+    }
+
+    // 最高点を取得
+    function getMaxScore(scores) {
+      return Math.max(...scores);
+    }
+
+    // 順位デフォルト（1位～4位）を含む頻度を生成
+    function generateRankCounts(ranks) {
+      const defaultRanks = { 1: 0, 2: 0, 3: 0, 4: 0 };
+      ranks.forEach(rank => {
+        if (rank in defaultRanks) {
+          defaultRanks[rank]++;
+        }
+      });
+      return defaultRanks;
+    }
+
+    // 統計情報を生成
+    function generateStatistics(data) {
+      statisticsContainer.innerHTML = '';
+      data.forEach(userData => {
+        const maxScore = getMaxScore(userData.scores); // 最高点を取得
+        const averageScore = getAverageScore(userData.scores); // 平均点を取得
+        const rankCounts = generateRankCounts(userData.ranks);
+
+        const card = document.createElement('div');
+        card.className = 'stats-card';
+        card.innerHTML = `  
+          <h3>${userData.player}</h3>
+          <p>最高点: ${maxScore}</p> <!-- 最高点を表示 -->
+          <p>平均点: ${averageScore.toFixed(2)}</p> <!-- 平均点を表示 -->
+          <p>順位の頻度:</p>
+          <ul>
+            ${Object.entries(rankCounts).map(([rank, count]) => `<li>${rank}位: ${count}回</li>`).join('')}
+          </ul>
+        `;
+
+        statisticsContainer.appendChild(card);
+      });
+    }
+
+    // グラフの描画
+    function renderChart(data) {
+      const datasets = [];
+      let allDates = [];
+
+      // すべてのユーザーの全ての記録された日付を収集
+      data.forEach(userData => {
+        allDates = allDates.concat(userData.dates);
+      });
+
+      const labeledDates = generateDateLabels(allDates);
+
+      // 各ユーザーの点数をグラフにプロット
+      data.forEach(userData => {
+        datasets.push({
+          label: userData.player,
+          data: labeledDates.map(date => {
+            const index = userData.dates.indexOf(date); // 重複した日付を避ける
+            return index >= 0 ? userData.scores[index] : null; // 点数を表示
+          }),
+          borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`, // 色をランダムに設定
+          fill: false,
+          tension: 0, // 直線
+        });
+      });
+
+      new Chart(historyChart, {
+        type: 'line',
+        data: {
+          labels: labeledDates,
+          datasets,
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: true,
+            },
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: '日付',
+              },
+            },
+            y: {
+              title: {
+                display: true,
+                text: '点数',
+              },
+              beginAtZero: false,
+            },
+          },
+        },
+      });
+    }
+
+    // 履歴の表示
+    function viewHistory() {
+      const selectedUsers = getSelectedUsers();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      if (!selectedUsers.length || !startDate || !endDate) {
+        alert('すべてのフィールドを入力してください。');
+        return;
+      }
+
+      const fetchedData = fetchScores(selectedUsers, startDate, endDate);
+
+      if (!fetchedData.length) {
+        alert('選択された期間とユーザーには履歴が見つかりませんでした。');
+        return;
+      }
+
+      const groupedData = groupDataByUser(fetchedData, selectedUsers);
+
+      renderChart(groupedData);
+      generateStatistics(groupedData);
+    }
+  </script>
+</body>
+</html>
